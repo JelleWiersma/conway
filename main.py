@@ -6,7 +6,13 @@ from collections import defaultdict
 from util import drawButton
 
 pygame.init()
-screen = pygame.display.set_mode((640, 480))
+pygame.display.set_caption('Conway\'s Game of Life')
+#Calculate size for pc, this is ignored on mobile devices
+screen_height = pygame.display.Info().current_h
+scale_factor = 0.7
+window_height = int(screen_height * scale_factor)
+window_width = int(window_height * 51 / 80)
+screen = pygame.display.set_mode((window_width, window_height))
 
 #constants
 WIDTH, HEIGHT = screen.get_width(), screen.get_height()
@@ -19,8 +25,7 @@ BLUE = pygame.Color("dodgerblue")
 ORANGE = pygame.Color("orange1")
 PURPLE =pygame.Color("purple")
 CYAN = pygame.Color("cyan1")
-#SAND =pygame.Color.
-FONT = pygame.font.SysFont("Arial", 64)
+FONT = pygame.font.SysFont("Arial", int(HEIGHT // 38.3), True)
 UPDATEEVENT = pygame.USEREVENT + 1
 UPDATESP1 = 1000 #ms
 UPDATESP2 = 500 #ms
@@ -52,13 +57,13 @@ primColor = WHITE
 secColor = BLACK
 
 #rects
-FIELD = pygame.Surface((WIDTH-10, HEIGHT-300))
-FIELDRECT = FIELD.get_rect()
-PBUTTONRECT = pygame.Rect(5, HEIGHT-184, (WIDTH-40)/3, 168)
-SBUTTONRECT = pygame.Rect(PBUTTONRECT.w+20, HEIGHT-184, PBUTTONRECT.w, 168)
-DBUTTONRECT = pygame.Rect(PBUTTONRECT.w*2+35, HEIGHT-184, PBUTTONRECT.w, 168)
-MBUTTONRECT = pygame.Rect(WIDTH - 305, 10, 300, 100)
-CBUTTONRECT = pygame.Rect(WIDTH -305, 10, 300, 100)
+TITLERECT = pygame.Rect(0, 0, WIDTH, HEIGHT // 24.5)
+BUTTONHEIGHT = HEIGHT // 14.5
+FIELDRECT = pygame.Rect(5, TITLERECT.bottom, WIDTH-10, HEIGHT-TITLERECT.height - BUTTONHEIGHT - 20)
+MBUTTONRECT = pygame.Rect(TITLERECT.right - 5 - TITLERECT.width // 4.1, TITLERECT.top + 5, TITLERECT.width // 4.1, TITLERECT.height)
+PBUTTONRECT = pygame.Rect(5, FIELDRECT.bottom + 10, (WIDTH-30)/3, BUTTONHEIGHT)
+SBUTTONRECT = pygame.Rect(PBUTTONRECT.w+15, FIELDRECT.bottom + 10, PBUTTONRECT.w, BUTTONHEIGHT)
+DBUTTONRECT = pygame.Rect(PBUTTONRECT.w*2+25, FIELDRECT.bottom + 10, PBUTTONRECT.w, BUTTONHEIGHT)
 
 #texts
 PLAYTEXT = "Play"
@@ -104,36 +109,36 @@ def drawDragButton():
 #title
 def drawTitle(force=False):
 	global lastTRender, lastLoc, lastLRender, locPos
-	
+
 	if update or force:
 		lastTRender = FONT.render(f"Turns: {turns}", 1, primColor)
 		
 	if lastLoc != (firstX, firstY) or force:
 		lastLoc = (firstX, firstY)
 		lastLRender = FONT.render(f"{firstX},{firstY}", 1, primColor)
-		locPos = (WIDTH-345-lastLRender.get_width(),20)
+		locPos = (TITLERECT.width-345-lastLRender.get_width(), tTextTop)
 		
-	screen.blit(lastTRender, (40,20))
+	screen.blit(lastTRender, (TITLERECT.left + 30, tTextTop))
 	screen.blit(lastLRender, locPos)
 	
-	text = CLOSETEXT
-	if ingame:
-		text = MENUTEXT
-	drawButton(screen, MBUTTONRECT, text, FONT, not ingame, True,   primColor)
+	text = MENUTEXT if ingame else CLOSETEXT
+	drawButton(screen, MBUTTONRECT, text, FONT, not ingame, True, primColor)
 
+#field
 def drawField():
-	FIELD.fill(secColor)
-	pygame.draw.rect(FIELD, primColor, FIELDRECT, 5)
+	field.fill(secColor)
+	pygame.draw.rect(field, primColor, field.get_rect(), 5)
 	
 	#draw cells
 	for (x, y) in aliveCells:
 		if x in range(firstX-1, columns+firstX) and y in range(firstY-1, rows+firstY):
 			posX=((x-firstX)*cellSize)+offsX
 			posY=((y-firstY)*cellSize)+offsY 
-			pygame.draw.rect(FIELD, primColor, (posX,posY, cellSize, cellSize))
+			pygame.draw.rect(field, primColor, (posX,posY, cellSize, cellSize))
 			
-	screen.blit(FIELD, (5,100))
+	screen.blit(field, FIELDRECT.topleft)
 
+#calculate next generation of cells
 def updateCells():
 	global aliveCells
 	
@@ -154,6 +159,7 @@ def updateCells():
 	
 	aliveCells = set(newAlive)
 
+#update grid size and offset
 def updateGrid(dX, dY, dDist, zoomcenter=None):
 	global firstX, firstY, offsX, offsY, cellSize
 	
@@ -187,6 +193,7 @@ def updateGrid(dX, dY, dDist, zoomcenter=None):
 	offsX -= shiftX * cellSize
 	offsY -= shiftY * cellSize
 	
+#cycle through colors
 def cycleColor():
 	global colors, color, colorNames, primColor, menu
 	color = color + 1 if color < 7 else 0
@@ -196,6 +203,7 @@ def cycleColor():
 	menu = getMenu(WIDTH-10, HEIGHT-100, settings, None, primColor)[0]
 	drawTitle(True)
 	
+#reset game
 def reset(clear=True, pos=True, count=True):
 	global aliveCells, turns, firstX, firstY, offsX, offsY, turns
 	if clear:
@@ -206,7 +214,7 @@ def reset(clear=True, pos=True, count=True):
 		turns = 0
 			
 def handleFDGame(x, y, finger_id):
-	global ptouch, stouch, dtouch, cltouch, paused, speed, draw, lastPos1, lastPos2, ingame, settings
+	global ptouch, stouch, dtouch, paused, speed, draw, ingame, settings
 	if PBUTTONRECT.collidepoint((x,y)):
 		ptouch = finger_id
 		paused = not paused
@@ -235,7 +243,7 @@ def handleFDGame(x, y, finger_id):
 		paused = True
 	else:
 		#save fingers for drawing
-		fingers[event.finger_id] = x, y
+		fingers[finger_id] = x, y
 		
 def handleFDMenu(x,y, finger_id):
 		global settings, mtouch, ingame
@@ -268,7 +276,7 @@ def handleFDMenu(x,y, finger_id):
 def handleFMGame(x,y,dx,dy,finger_id):
 #only draw pixel if finger didnt start by touching a button
 	global fingers, ptouch, stouch, dtouch, draw
-	if event.finger_id not in (ptouch, stouch, dtouch,mtouch):
+	if finger_id not in (ptouch, stouch, dtouch,mtouch):
 		oldFingers[finger_id] = fingers[finger_id]
 		fingers[finger_id] = (x,y)
 		
@@ -291,20 +299,21 @@ def handleFMGame(x,y,dx,dy,finger_id):
 		
 def handleFU(finger_id):
 	global ptouch, dtouch, stouch, mtouch, fingers
-	if event.finger_id == ptouch:
+	if finger_id == ptouch:
 		ptouch = None
-	elif event.finger_id == dtouch:
+	elif finger_id == dtouch:
 		dtouch = None
-	elif event.finger_id == stouch:
+	elif finger_id == stouch:
 		stouch = None
-	elif event.finger_id == mtouch:
+	elif finger_id == mtouch:
 		mtouch = None
 	else:
 		fingers.pop(finger_id, None)
 		oldFingers.pop(finger_id, None)
 
 #setup
-FIELD.set_clip(FIELDRECT)
+field = pygame.Surface((FIELDRECT.width, FIELDRECT.height))
+field.set_clip(field.get_rect())
 clock = pygame.time.Clock()
 rows, columns = FIELDRECT.height // cellSize, FIELDRECT.width // cellSize
 aliveCells = set()
@@ -313,13 +322,15 @@ settings = {"changed": True, "cleared": False, "pos": False, "color": "White", "
 menu, menuBtnRects = getMenu(WIDTH-10, HEIGHT-100,settings) #clear, pos, color, animations, mode, still, load
 lastTRender = FONT.render("Turns: 0", 1, primColor)
 lastLRender = FONT.render("0,0", 1, primColor)
+tTextTop = TITLERECT.height // 2 - lastTRender.get_height() // 2
 lastLoc = (0,0)
-locPos = (WIDTH-345-lastLRender.get_width(),20)
+locPos = (MBUTTONRECT.left-lastLRender.get_width() - 10,tTextTop)
 primColor = WHITE
 secColor = BLACK
 color = 0
 colors = [WHITE,GREEN,RED,YELLOW,BLUE,ORANGE,PURPLE,CYAN]
 colorNames = ["White","Green", "Red", "Yellow", "Blue", "Orange", "Purple","Cyan"]
+mouseActive = False
 
 #translate rect positions for menu placement
 for rect in menuBtnRects:
@@ -334,13 +345,15 @@ while running:
 		if event.type == pygame.QUIT:
 			running = False
 			
-		if event.type == pygame.FINGERDOWN:
-			x = event.x * WIDTH
-			y = event.y * HEIGHT
+		if event.type == pygame.FINGERDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+
+			x = event.x * WIDTH if event.type == pygame.FINGERDOWN else event.pos[0]
+			y = event.y * HEIGHT if event.type == pygame.FINGERDOWN else event.pos[1]
+			finger = event.finger_id if event.type == pygame.FINGERDOWN else -1
 			if ingame:
-				handleFDGame(x,y, event.finger_id)
+				handleFDGame(x,y, finger)
 			else:
-				handleFDMenu(x,y, event.finger_id)
+				handleFDMenu(x,y, finger)
 				
 		if event.type == pygame.FINGERMOTION:
 			x = event.x * WIDTH
@@ -353,6 +366,8 @@ while running:
 					
 		if event.type == pygame.FINGERUP:
 			handleFU(event.finger_id)
+		if event.type == pygame.MOUSEBUTTONUP:
+			handleFU(-1)
 		
 		if event.type == UPDATEEVENT:
 			update = True
@@ -362,8 +377,8 @@ while running:
 		for finger, pos in fingers.items():
 			if FIELDRECT.collidepoint(pos):
 				fx, fy = pos[0], pos[1]
-				cx = int((fx - offsX) // cellSize + firstX)
-				cy = int((fy - offsY - 70) // cellSize + firstY)
+				cx = int((fx - offsX - 5) // cellSize + firstX)
+				cy = int((fy - offsY - TITLERECT.bottom) // cellSize + firstY)
 				aliveCells.add((cx,cy))
 		
 	if (not paused) & update:
