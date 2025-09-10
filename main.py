@@ -1,8 +1,7 @@
 import pygame
-import sys
 import math
-from menu import getMenu
 from collections import defaultdict
+from menu import getMenu
 from util import drawButton
 
 pygame.init()
@@ -34,6 +33,7 @@ running = True
 ingame = True
 paused = True
 draw = True
+still = False
 turns = 0
 ptouch = None
 stouch = None
@@ -41,7 +41,8 @@ dtouch = None
 mtouch = None
 settings = None
 cellSize = 10
-speed = 1
+speed = UPDATESP1
+color = 0
 fingers = {}
 oldFingers = {}
 offsY = 0
@@ -82,18 +83,8 @@ def drawPauseButton():
 		drawButton(screen, PBUTTONRECT, PAUSETEXT, FONT, False, True, primColor)
 		
 def drawSpeedButton():
-	text = SP1TEXT
-	if speed == 2:
-		text = SP2TEXT
-	elif speed == 3:
-		text = SP3TEXT
-	elif speed == 4:
-		text = SP4TEXT
-	elif speed == 5:
-		text = SP6TEXT
-	elif speed == 6:
-		text = SP8TEXT
-	drawButton(screen, SBUTTONRECT, text, FONT, False, True, primColor)
+	global speedText
+	drawButton(screen, SBUTTONRECT, speedText, FONT, False, True, primColor)
 		
 def drawDragButton():
 	if draw:
@@ -126,7 +117,7 @@ def drawField():
 	pygame.draw.rect(FIELD, primColor, FIELDRECT, 5)
 	
 	#draw cells
-	for (x, y) in aliveCells:
+	for (x, y) in currentGrid:
 		if x in range(firstX-1, columns+firstX) and y in range(firstY-1, rows+firstY):
 			posX=((x-firstX)*cellSize)+offsX
 			posY=((y-firstY)*cellSize)+offsY 
@@ -134,13 +125,14 @@ def drawField():
 			
 	screen.blit(FIELD, (5,100))
 
+#Logic
 def updateCells():
-	global aliveCells
+	global currentGrid, still, lastGrid
 	
 	newAlive = set()
 	neighbourCounts = defaultdict(int)
 	#for every alive cell, add one alive cell to the count of all the neighbours
-	for cell in aliveCells:
+	for cell in currentGrid:
 		for dx in [-1, 0, 1]:
 			for dy in [-1,0,1]:
 				if not (dx == 0 and dy == 0):
@@ -149,10 +141,10 @@ def updateCells():
 	
 	#Take every relevant cell and check if they live
 	for cell, count in neighbourCounts.items():
-		if count == 3 or (count == 2 and cell in aliveCells):
+		if count == 3 or (count == 2 and cell in currentGrid):
 			newAlive.add(cell)
 	
-	aliveCells = set(newAlive)
+	currentGrid = set(newAlive)
 
 def updateGrid(dX, dY, dDist, zoomcenter=None):
 	global firstX, firstY, offsX, offsY, cellSize
@@ -195,11 +187,39 @@ def cycleColor():
 	primColor = colors[color]
 	menu = getMenu(WIDTH-10, HEIGHT-100, settings, None, primColor)[0]
 	drawTitle(True)
+
+def cycleSpeed():
+	global speed, speedText
+	settings["speed"] = settings["speed"] + 1 if settings["speed"] < 6 else 1
+	if settings["speed"] == 1:
+		speed = UPDATESP1
+		speedText = SP1TEXT
+	elif settings["speed"] == 2:
+		speed = UPDATESP2
+		speedText = SP2TEXT
+	elif settings["speed"] == 3:
+		speed = UPDATESP3
+		speedText = SP3TEXT
+	elif settings["speed"] == 4:
+		speed = UPDATESP4
+		speedText = SP4TEXT
+	elif settings["speed"] == 5:
+		speed = UPDATESP6
+		speedText = SP6TEXT
+	else:
+		speed = UPDATESP8
+		speedText = SP8TEXT
+	pygame.time.set_timer(UPDATEEVENT, speed)
+
+def loadFirst():
+	global turns, currentGrid, firstGrid
+	turns = 0
+	currentGrid = firstGrid
 	
 def reset(clear=True, pos=True, count=True):
-	global aliveCells, turns, firstX, firstY, offsX, offsY, turns
+	global currentGrid, turns, firstX, firstY, offsX, offsY, turns
 	if clear:
-		aliveCells = set()
+		currentGrid = set()
 	if pos:
 		firstX, firstY, offsX, offsY = 0,0,0,0
 	if count:
@@ -212,19 +232,7 @@ def handleFDGame(x, y, finger_id):
 		paused = not paused
 	elif SBUTTONRECT.collidepoint((x,y)):
 		stouch = finger_id
-		speed = speed + 1 if speed < 6 else 1
-		if speed == 1:
-			pygame.time.set_timer(UPDATEEVENT, UPDATESP1)
-		elif speed == 2:
-			pygame.time.set_timer(UPDATEEVENT, UPDATESP2)
-		elif speed == 3:
-			pygame.time.set_timer(UPDATEEVENT, UPDATESP3)
-		elif speed == 4:
-			pygame.time.set_timer(UPDATEEVENT, UPDATESP4)
-		elif speed == 5:
-			pygame.time.set_timer(UPDATEEVENT, UPDATESP6)
-		else:
-			pygame.time.set_timer(UPDATEEVENT, UPDATESP8)
+		cycleSpeed()
 	elif DBUTTONRECT.collidepoint((x,y)):
 		dtouch = finger_id
 		draw = not draw
@@ -232,6 +240,7 @@ def handleFDGame(x, y, finger_id):
 		ingame = False
 		settings["cleared"] = False
 		settings["pos"] = False
+		settings["load"] = False
 		paused = True
 	else:
 		#save fingers for drawing
@@ -254,16 +263,23 @@ def handleFDMenu(x,y, finger_id):
 			reset(False, True, False)
 		#color
 		elif menuBtnRects[2].collidepoint((x,y)):
+			settings["changed"] = True
 			cycleColor()
-		#elif menuBtnRects[2].collidepoint((x,y)):
 		#animations
-		#elif menuBtnRects[3].collidepoint((x,y)):
+		elif menuBtnRects[3].collidepoint((x,y)):
+			pass
 		#mode
-		#elif menuBtnRects[4].collidepoint((x,y)):
+		elif menuBtnRects[4].collidepoint((x,y)):
+			pass
 		#still
-		#elif menuBtnRects[5].collidepoint((x,y)):
+		elif menuBtnRects[5].collidepoint((x,y)):
+			settings["changed"] = True
+			settings["still"] = not settings["still"]
 		#load
-		#elif menuBtnRects[6].collidepoint((x,y)):
+		elif menuBtnRects[6].collidepoint((x,y)):
+			settings["changed"] = True
+			settings["load"] = True
+			loadFirst()
 
 def handleFMGame(x,y,dx,dy,finger_id):
 #only draw pixel if finger didnt start by touching a button
@@ -307,17 +323,17 @@ def handleFU(finger_id):
 FIELD.set_clip(FIELDRECT)
 clock = pygame.time.Clock()
 rows, columns = FIELDRECT.height // cellSize, FIELDRECT.width // cellSize
-aliveCells = set()
+currentGrid = set()
+firstGrid = set()
+lastGrid = set()
 pygame.time.set_timer(UPDATEEVENT, UPDATESP1)
-settings = {"changed": True, "cleared": False, "pos": False, "color": "White", "anims": False, "mode": 1, "still": False, "load": False}
+settings = {"changed": True, "speed": 1, "cleared": False, "pos": False, "color": "White", "anims": False, "mode": 1, "still": False, "load": False}
+speedText = SP1TEXT
 menu, menuBtnRects = getMenu(WIDTH-10, HEIGHT-100,settings) #clear, pos, color, animations, mode, still, load
 lastTRender = FONT.render("Turns: 0", 1, primColor)
 lastLRender = FONT.render("0,0", 1, primColor)
 lastLoc = (0,0)
 locPos = (WIDTH-345-lastLRender.get_width(),20)
-primColor = WHITE
-secColor = BLACK
-color = 0
 colors = [WHITE,GREEN,RED,YELLOW,BLUE,ORANGE,PURPLE,CYAN]
 colorNames = ["White","Green", "Red", "Yellow", "Blue", "Orange", "Purple","Cyan"]
 
@@ -356,28 +372,38 @@ while running:
 		
 		if event.type == UPDATEEVENT:
 			update = True
-		
-	#draw fingers
-	if draw & ingame:
-		for finger, pos in fingers.items():
-			if FIELDRECT.collidepoint(pos):
-				fx, fy = pos[0], pos[1]
-				cx = int((fx - offsX) // cellSize + firstX)
-				cy = int((fy - offsY - 70) // cellSize + firstY)
-				aliveCells.add((cx,cy))
-		
-	if (not paused) & update:
-		turns += 1
-		updateCells()
 	
-	#redraw screen
+	#draw stuff
 	screen.fill(secColor)
 	drawTitle()
+		
 	if ingame:
+
+		#draw fingers
+		if draw:
+			for finger, pos in fingers.items():
+				if FIELDRECT.collidepoint(pos):
+					fx, fy = pos[0], pos[1]
+					cx = int((fx - offsX) // cellSize + firstX)
+					cy = int((fy - offsY - 70) // cellSize + firstY)
+					currentGrid.add((cx,cy))
+		
+		#update cells
+		if (not paused) & update:
+			if settings["still"] and still:
+				paused = True
+				continue
+			
+			if turns == 0:
+				firstGrid = currentGrid
+			turns += 1
+			updateCells()
+	
 		drawPauseButton()
 		drawSpeedButton()
 		drawDragButton()
-		drawField()		
+		drawField()
+
 	else:
 		menu = getMenu(WIDTH-10, HEIGHT-100, settings, menu, primColor)[0]
 		screen.blit(menu, (5,100))
