@@ -1,4 +1,5 @@
 import pygame
+from collections import defaultdict
 pygame.init()
 
 # downloaded from https://www.pygame.org/wiki/TextWrap
@@ -59,3 +60,41 @@ def drawButton(screen, rect, text, font, active=False, redraw=True, primColor=(2
 		)
 		screen.blit(render, pos)
 	return rect
+
+_fade_cache = {}
+
+def fadeColor(color, alpha):
+    # Normalize key: works for both pygame.Color and RGB tuples
+    if isinstance(color, pygame.Color):
+        key = (color.r, color.g, color.b, alpha)
+    elif isinstance(color, tuple):
+        key = (*color, alpha)
+    else:
+        raise TypeError("Color must be a tuple or pygame.Color")
+
+    # Return from cache if available
+    if key in _fade_cache:
+        return _fade_cache[key]
+
+    # Only create once, no repeat copy
+    faded = pygame.Color(*key[:3])
+    faded.a = key[3]
+    _fade_cache[key] = faded
+    return faded
+	
+def updateCells(grid):
+	resGrid = set()
+	neighbourCounts = defaultdict(int)
+	#for every alive cell, add one alive cell to the count of all the neighbours
+	for cell in grid:
+		for dx in [-1, 0, 1]:
+			for dy in [-1,0,1]:
+				if not (dx == 0 and dy == 0):
+					currentNb = (cell[0] + dx, cell[1] + dy)
+					neighbourCounts[currentNb] += 1
+	
+	#Take every relevant cell and check if they live
+	for cell, count in neighbourCounts.items():
+		if count == 3 or (count == 2 and cell in grid):
+			resGrid.add(cell)
+	return resGrid
