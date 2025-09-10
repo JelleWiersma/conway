@@ -144,6 +144,7 @@ def updateCells():
 		if count == 3 or (count == 2 and cell in currentGrid):
 			newAlive.add(cell)
 	
+	still = newAlive == currentGrid or newAlive == lastGrid
 	currentGrid = set(newAlive)
 
 def updateGrid(dX, dY, dDist, zoomcenter=None):
