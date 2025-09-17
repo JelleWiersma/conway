@@ -44,18 +44,15 @@ def drawText(surface, text, color, rect, font, aa=False, bkg=None):
     return text
 
 #draw button
-def drawButton(screen, rect, text, font, active=False, redraw=True, primColor=(255,255,255), secColor= (0,0,0)):
+def drawButton(screen, rect, text, font, border=0, redraw=True, primColor=(255,255,255), secColor= (0,0,0)):
 	if redraw:
 		pygame.draw.rect(screen, secColor, rect)
-		if active:
+		if border == 0:
 			pygame.draw.rect(screen, primColor, rect)
 			render = font.render(text, True, secColor)
 		else:
-			pygame.draw.rect(screen, primColor, rect, 5)
+			pygame.draw.rect(screen, primColor, rect, border)
 			render = font.render(text, True, primColor)
-		pos = (
-			rect.centerx - render.get_width() / 2,
-			rect.centery - render.get_height() / 2
-		)
-		screen.blit(render, pos)
+		text_rect = render.get_rect(center=rect.center)
+		screen.blit(render, text_rect)
 	return rect

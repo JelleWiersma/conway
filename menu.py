@@ -24,8 +24,7 @@ MOREBODY = "Apart from drawing something and watching the resulting chaos or pat
 FOOTERTEXT = "This app was made by me, Jelle. It was made on my phone, using pygame in the Pydroid 3 IDE. I decided to make this during the quiet and/or connectionless moments of 4 months travelling."
 
 #creates a surface with menu
-def getMenu(w, h, settings, menu=None, primColor = (255,255,255), 
-secColor = (0,0,0)):
+def getMenu(w, h, settings, menu=None, primColor = (255,255,255), secColor = (0,0,0)):
 	screen = menu if menu else pygame.Surface((w, h))
 	screenRect = screen.get_rect()
 	

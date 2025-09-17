@@ -6,11 +6,13 @@ from util import drawButton
 
 pygame.init()
 pygame.display.set_caption('Conway\'s Game of Life')
+
 #Calculate size for pc, this is ignored on mobile devices
 screen_height = pygame.display.Info().current_h
-scale_factor = 0.7
+scale_factor = 0.9
 window_height = int(screen_height * scale_factor)
 window_width = int(window_height * 51 / 80)
+
 screen = pygame.display.set_mode((window_width, window_height))
 
 #constants
@@ -24,7 +26,7 @@ BLUE = pygame.Color("dodgerblue")
 ORANGE = pygame.Color("orange1")
 PURPLE =pygame.Color("purple")
 CYAN = pygame.Color("cyan1")
-FONT = pygame.font.SysFont("Arial", int(HEIGHT // 38.3), True)
+FONT = pygame.font.SysFont("Arial", int(HEIGHT * 0.04), True)
 UPDATEEVENT = pygame.USEREVENT + 1
 UPDATESP1 = 1000 #ms
 UPDATESP2 = 500 #ms
@@ -33,38 +35,21 @@ UPDATESP4 = 100 #ms
 UPDATESP6 = 50 #ms
 UPDATESP8 = 25 #ms
 
-#variables
-running = True
-ingame = True
-paused = True
-draw = True
-still = False
-turns = 0
-ptouch = None
-stouch = None
-dtouch = None
-mtouch = None
-settings = None
-cellSize = 10
-speed = UPDATESP1
-color = 0
-fingers = {}
-oldFingers = {}
-offsY = 0
-offsX = 0
-firstX = 0
-firstY = 0
-primColor = WHITE
-secColor = BLACK
+
+
+#sizes
+BORDERSIZE = int(HEIGHT * 0.005)
+SPACING = int(HEIGHT * 0.01)
+CTRLBTNHEIGHT = int(HEIGHT * 0.07)
+CTRLBTNWIDTH = (WIDTH - (BORDERSIZE * 2) - (SPACING * 2)) // 3
 
 #rects
-TITLERECT = pygame.Rect(0, 0, WIDTH, HEIGHT // 24.5)
-BUTTONHEIGHT = HEIGHT // 14.5
-FIELDRECT = pygame.Rect(5, TITLERECT.bottom, WIDTH-10, HEIGHT-TITLERECT.height - BUTTONHEIGHT - 20)
-MBUTTONRECT = pygame.Rect(TITLERECT.right - 5 - TITLERECT.width // 4.1, TITLERECT.top + 5, TITLERECT.width // 4.1, TITLERECT.height)
-PBUTTONRECT = pygame.Rect(5, FIELDRECT.bottom + 10, (WIDTH-30)/3, BUTTONHEIGHT)
-SBUTTONRECT = pygame.Rect(PBUTTONRECT.w+15, FIELDRECT.bottom + 10, PBUTTONRECT.w, BUTTONHEIGHT)
-DBUTTONRECT = pygame.Rect(PBUTTONRECT.w*2+25, FIELDRECT.bottom + 10, PBUTTONRECT.w, BUTTONHEIGHT)
+TITLERECT = pygame.Rect(0, 0, WIDTH, int(HEIGHT * 0.05))
+FIELDRECT = pygame.Rect(BORDERSIZE, TITLERECT.bottom, WIDTH - (BORDERSIZE * 2), HEIGHT-TITLERECT.height - CTRLBTNHEIGHT - (2*SPACING))
+MBUTTONRECT = pygame.Rect(TITLERECT.right - BORDERSIZE - int(TITLERECT.width * 0.25), TITLERECT.top + BORDERSIZE, int(TITLERECT.width * 0.25), TITLERECT.height)
+PBUTTONRECT = pygame.Rect(FIELDRECT.left, FIELDRECT.bottom + SPACING, CTRLBTNWIDTH, CTRLBTNHEIGHT)
+SBUTTONRECT = pygame.Rect(PBUTTONRECT.right+SPACING, FIELDRECT.bottom + SPACING, CTRLBTNWIDTH, CTRLBTNHEIGHT)
+DBUTTONRECT = pygame.Rect(SBUTTONRECT.right+SPACING, FIELDRECT.bottom + SPACING, FIELDRECT.right - (SBUTTONRECT.right + SPACING), CTRLBTNHEIGHT)
 
 #texts
 PLAYTEXT = "Play"
@@ -77,25 +62,27 @@ SP6TEXT = "6X"
 SP8TEXT = "8X"
 DRAWTEXT = "Drawing"
 DRAGTEXT = "Dragging"
-MENUTEXT = "menu"
-CLOSETEXT = "close"
+MENUTEXT = "Menu"
+CLOSETEXT = "Close"
 
 #buttons
 def drawPauseButton():
+	global paused
 	if paused:
-		drawButton(screen, PBUTTONRECT, PLAYTEXT, FONT, True, True, primColor)
+		drawButton(screen, PBUTTONRECT, PLAYTEXT, FONT, 0, True, primColor)
 	else:
-		drawButton(screen, PBUTTONRECT, PAUSETEXT, FONT, False, True, primColor)
+		drawButton(screen, PBUTTONRECT, PAUSETEXT, FONT, BORDERSIZE, True, primColor)
 		
 def drawSpeedButton():
 	global speedText
-	drawButton(screen, SBUTTONRECT, speedText, FONT, False, True, primColor)
+	drawButton(screen, SBUTTONRECT, speedText, FONT, BORDERSIZE, primColor)
 		
 def drawDragButton():
+	global draw
 	if draw:
-		drawButton(screen, DBUTTONRECT, DRAWTEXT, FONT, True, True, primColor)
+		drawButton(screen, DBUTTONRECT, DRAWTEXT, FONT, 0, True, primColor)
 	else:
-		drawButton(screen, DBUTTONRECT, DRAGTEXT, FONT, False, True, primColor)
+		drawButton(screen, DBUTTONRECT, DRAGTEXT, FONT, BORDERSIZE, True, primColor)
 
 #title
 def drawTitle(force=False):
@@ -112,13 +99,16 @@ def drawTitle(force=False):
 	screen.blit(lastTRender, (TITLERECT.left + 30, tTextTop))
 	screen.blit(lastLRender, locPos)
 	
-	text = MENUTEXT if ingame else CLOSETEXT
-	drawButton(screen, MBUTTONRECT, text, FONT, not ingame, True, primColor)
+	if ingame:
+		drawButton(screen, MBUTTONRECT, MENUTEXT, FONT, BORDERSIZE, True, primColor)
+	else:
+		drawButton(screen, MBUTTONRECT, CLOSETEXT, FONT, 0, True, primColor)
+	
 
 #field
 def drawField():
 	field.fill(secColor)
-	pygame.draw.rect(field, primColor, field.get_rect(), 5)
+	pygame.draw.rect(field, primColor, field.get_rect(), BORDERSIZE)
 	
 	#draw cells
 	for (x, y) in currentGrid:
@@ -328,6 +318,16 @@ def handleFU(finger_id):
 		oldFingers.pop(finger_id, None)
 
 #setup
+running = ingame = paused = draw = True
+still = mouseActive = False
+ptouch = stouch = dtouch = mtouch = None
+turns = color = offsX = offsY = firstX = firstY = 0
+cellSize = max(10, FIELDRECT.width // 80, FIELDRECT.height // 60)
+speed = UPDATESP1
+fingers = {}
+oldFingers = {}
+primColor = WHITE
+secColor = BLACK
 field = pygame.Surface((FIELDRECT.width, FIELDRECT.height))
 field.set_clip(field.get_rect())
 clock = pygame.time.Clock()
@@ -346,7 +346,6 @@ lastLoc = (0,0)
 locPos = (MBUTTONRECT.left-lastLRender.get_width() - 10,tTextTop)
 colors = [WHITE,GREEN,RED,YELLOW,BLUE,ORANGE,PURPLE,CYAN]
 colorNames = ["White","Green", "Red", "Yellow", "Blue", "Orange", "Purple","Cyan"]
-mouseActive = False
 
 #translate rect positions for menu placement
 for rect in menuBtnRects:
