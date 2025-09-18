@@ -78,7 +78,7 @@ def drawPauseButton():
 		
 def drawSpeedButton():
 	global speedText
-	drawButton(screen, SBUTTONRECT, speedText, FONT, BORDERSIZE, primColor)
+	drawButton(screen, SBUTTONRECT, speedText, FONT, BORDERSIZE, True, primColor)
 		
 def drawDragButton():
 	global draw
@@ -154,7 +154,7 @@ def updateGrid(dX, dY, dDist, zoomcenter=None):
 
 	zoomFactor = 1 + (dDist / 300)
 	proposedSize = int(cellSize * zoomFactor)
-	if not use_touch and dDist != 0 and cellSize == proposedSize:
+	if dDist != 0 and cellSize == proposedSize:
 		proposedSize += 1 if dDist > 0 else -1
 	newCellSize = max(MINCELLSIZE, min(MAXCELLSIZE, proposedSize))
 
@@ -186,8 +186,6 @@ def updateGrid(dX, dY, dDist, zoomcenter=None):
 
 	rows = FIELDRECT.height // cellSize
 	columns = FIELDRECT.width // cellSize
-
-	print(f"Cellsize: {cellSize}, zoomFactor: {zoomFactor}, dDist: {dDist} firstX: {firstX}, firstY: {firstY}, offsX: {offsX}, offsY: {offsY}, rows: {rows}, columns: {columns}")
 	
 #cycle through colors
 def cycleColor():
@@ -353,12 +351,10 @@ pygame.time.set_timer(UPDATEEVENT, UPDATESP1)
 settings = {"changed": True, "speed": 1, "cleared": False, "pos": False, "color": "White", "anims": False, "mode": 1, "still": False, "load": False}
 speedText = SP1TEXT
 menu, menuBtnRects = getMenu(WIDTH-10, HEIGHT-100,settings) #clear, pos, color, animations, mode, still, load
-lastTRender = lastLRender = None
 lastLoc = (0,0)
 locPos = (0,0)
 colors = [WHITE,GREEN,RED,YELLOW,BLUE,ORANGE,PURPLE,CYAN]
 colorNames = ["White","Green", "Red", "Yellow", "Blue", "Orange", "Purple","Cyan"]
-use_touch = True if "android" in platform.platform().lower() or "ios" in platform.platform().lower() else False
 drawTitle(True)
 
 #translate rect positions for menu placement
@@ -376,53 +372,55 @@ while running:
 
 		if event.type == UPDATEEVENT:
 			update = True
-			
-		if use_touch:
-			if event.type == pygame.FINGERDOWN:
-
-				x = event.x * WIDTH 
-				y = event.y * HEIGHT
-				if ingame:
-					handleFDGame(x,y, event.finger_id)
-				else:
-					handleFDMenu(x,y, event.finger_id)
-					
-			if event.type == pygame.FINGERMOTION:
-				x = event.x * WIDTH
-				y = event.y * HEIGHT
-				dx = event.dx*WIDTH
-				dy = event.dy*HEIGHT
-				
-				if ingame:
-					handleFMGame(x,y,dx,dy, event.finger_id)
-						
-			if event.type == pygame.FINGERUP:
-				handleFU(event.finger_id)
+			continue
 		
-		else:
-			if event.type == pygame.MOUSEBUTTONDOWN:
-				if event.button == 1: #left click
-					mx, my = event.pos
-					if ingame:
-						handleFDGame(mx,my, "mouse")
-					else:
-						handleFDMenu(mx,my, "mouse")
-					mouseActive = True
-				elif event.button in (4,5): #scroll
-					if FIELDRECT.collidepoint(event.pos):
-						dy = WIDTH // 20 if event.button == 4 else 1 - WIDTH // 20
-						updateGrid(0,0,dy,event.pos)
-						
-			if event.type == pygame.MOUSEMOTION:
+		if event.type == pygame.FINGERDOWN:
+
+			x = event.x * WIDTH 
+			y = event.y * HEIGHT
+			if ingame:
+				handleFDGame(x,y, event.finger_id)
+			else:
+				handleFDMenu(x,y, event.finger_id)
+			continue
+				
+		if event.type == pygame.FINGERMOTION:
+			x = event.x * WIDTH
+			y = event.y * HEIGHT
+			dx = event.dx*WIDTH
+			dy = event.dy*HEIGHT
+			
+			if ingame:
+				handleFMGame(x,y,dx,dy, event.finger_id)
+			continue
+					
+		if event.type == pygame.FINGERUP:
+			handleFU(event.finger_id)
+			continue
+		
+		if event.type == pygame.MOUSEBUTTONDOWN:
+			if event.button == 1: #left click
 				mx, my = event.pos
-				if mouseActive:
-					if ingame:
-						handleFMGame(mx,my,event.rel[0], event.rel[1], "mouse")
-						
-			if event.type == pygame.MOUSEBUTTONUP:
-				if event.button == 1: #left click
-					handleFU("mouse")
-					mouseActive = False
+				if ingame:
+					handleFDGame(mx,my, "mouse")
+				else:
+					handleFDMenu(mx,my, "mouse")
+				mouseActive = True
+			elif event.button in (4,5): #scroll
+				if FIELDRECT.collidepoint(event.pos) and ingame:
+					dy = WIDTH // 20 if event.button == 4 else 1 - WIDTH // 20
+					updateGrid(0,0,dy,event.pos)
+					
+		if event.type == pygame.MOUSEMOTION:
+			mx, my = event.pos
+			if mouseActive:
+				if ingame:
+					handleFMGame(mx,my,event.rel[0], event.rel[1], "mouse")
+					
+		if event.type == pygame.MOUSEBUTTONUP:
+			if event.button == 1: #left click
+				handleFU("mouse")
+				mouseActive = False
 		
 	if ingame:
 

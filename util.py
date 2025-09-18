@@ -59,7 +59,7 @@ def drawButton(screen, rect, text, font, border=0, redraw=True, primColor=(255,2
 
 renderCache = {}
 def renderText(text, font, color):
-    key = (text, font, color)
+    key = (text, font, str(color))
     if key in renderCache:
         return renderCache[key]
     else:
