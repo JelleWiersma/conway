@@ -2,7 +2,7 @@ import pygame
 import math
 from collections import defaultdict
 from menu import getMenu
-from util import drawButton
+from util import drawButton, renderText
 import platform
 
 pygame.init()
@@ -10,7 +10,7 @@ pygame.display.set_caption('Conway\'s Game of Life')
 
 #Calculate size for pc, this is ignored on mobile
 screen_height = pygame.display.Info().current_h
-scale_factor = 0.9
+scale_factor = 0.8
 window_height = int(screen_height * scale_factor)
 window_width = int(window_height * 51 / 80)
 
@@ -65,6 +65,8 @@ DRAWTEXT = "Drawing"
 DRAGTEXT = "Dragging"
 MENUTEXT = "Menu"
 CLOSETEXT = "Close"
+TTEXTTOP = TITLERECT.height // 2 - FONT.get_height() // 2
+TITLEPOS = (2*SPACING, TTEXTTOP)
 
 #buttons
 def drawPauseButton():
@@ -87,17 +89,17 @@ def drawDragButton():
 
 #title
 def drawTitle(force=False):
-	global lastTRender, lastLoc, lastLRender, locPos
+	global lastTRender, lastLoc, lastLRender, locPos, update
 
 	if update or force:
-		lastTRender = FONT.render(f"Turns: {turns}", 1, primColor)
+		lastTRender = renderText(f"Turns: {turns}", FONT, primColor)
 		
 	if lastLoc != (firstX, firstY) or force:
 		lastLoc = (firstX, firstY)
-		lastLRender = FONT.render(f"{firstX},{firstY}", 1, primColor)
-		locPos = (TITLERECT.width-345-lastLRender.get_width(), tTextTop)
+		lastLRender = renderText(f"{firstX},{firstY}", FONT, primColor)
+		locPos = (MBUTTONRECT.left-2*SPACING-lastLRender.get_width(), TTEXTTOP)
 		
-	screen.blit(lastTRender, (TITLERECT.left + 30, tTextTop))
+	screen.blit(lastTRender, TITLEPOS)
 	screen.blit(lastLRender, locPos)
 	
 	if ingame:
@@ -113,7 +115,7 @@ def drawField():
 	
 	#draw cells
 	for (x, y) in currentGrid:
-		if firstX - 1 <= x < firstX + columns + 1 and firstY - 1 <= y < firstY + rows + 1:
+		if firstX - 2 <= x < firstX + columns + 2 and firstY - 2 <= y < firstY + rows + 2:
 			posX=((x-firstX)*cellSize)+offsX
 			posY=((y-firstY)*cellSize)+offsY 
 			pygame.draw.rect(field, primColor, (posX,posY, cellSize, cellSize))
@@ -331,7 +333,7 @@ def handleFU(finger_id):
 
 #setup
 running = ingame = paused = draw = True
-still = mouseActive = False
+still = mouseActive = update = False
 ptouch = stouch = dtouch = mtouch = None
 turns = color = offsX = offsY = firstX = firstY = 0
 cellSize = max(10, FIELDRECT.width // 80, FIELDRECT.height // 60)
@@ -351,15 +353,13 @@ pygame.time.set_timer(UPDATEEVENT, UPDATESP1)
 settings = {"changed": True, "speed": 1, "cleared": False, "pos": False, "color": "White", "anims": False, "mode": 1, "still": False, "load": False}
 speedText = SP1TEXT
 menu, menuBtnRects = getMenu(WIDTH-10, HEIGHT-100,settings) #clear, pos, color, animations, mode, still, load
-lastTRender = FONT.render("Turns: 0", 1, primColor)
-lastLRender = FONT.render("0,0", 1, primColor)
-tTextTop = TITLERECT.height // 2 - lastTRender.get_height() // 2
+lastTRender = lastLRender = None
 lastLoc = (0,0)
-locPos = (MBUTTONRECT.left-lastLRender.get_width() - 10,tTextTop)
+locPos = (0,0)
 colors = [WHITE,GREEN,RED,YELLOW,BLUE,ORANGE,PURPLE,CYAN]
 colorNames = ["White","Green", "Red", "Yellow", "Blue", "Orange", "Purple","Cyan"]
 use_touch = True if "android" in platform.platform().lower() or "ios" in platform.platform().lower() else False
-    
+drawTitle(True)
 
 #translate rect positions for menu placement
 for rect in menuBtnRects:
@@ -424,11 +424,6 @@ while running:
 					handleFU("mouse")
 					mouseActive = False
 		
-	
-	#draw stuff
-	screen.fill(secColor)
-	drawTitle()
-		
 	if ingame:
 
 		#draw fingers
@@ -451,6 +446,11 @@ while running:
 			turns += 1
 			updateCells()
 	
+	#draw stuff
+	screen.fill(secColor)
+	drawTitle()
+
+	if ingame:
 		drawPauseButton()
 		drawSpeedButton()
 		drawDragButton()
