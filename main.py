@@ -3,7 +3,6 @@ import math
 from collections import defaultdict
 from menu import getMenu
 from util import drawButton, renderText
-import platform
 
 pygame.init()
 pygame.display.set_caption('Conway\'s Game of Life')
@@ -18,6 +17,7 @@ screen = pygame.display.set_mode((window_width, window_height))
 
 #constants
 WIDTH, HEIGHT = screen.get_width(), screen.get_height()
+TOUCHSCREEN = not (WIDTH == window_width and HEIGHT == window_height) #if the window is not the set size, it is probably on mobile
 WHITE = (255,255,255)
 BLACK = (0,0,0)
 GREEN = pygame.Color("green2")
@@ -374,53 +374,56 @@ while running:
 			update = True
 			continue
 		
-		if event.type == pygame.FINGERDOWN:
+		if TOUCHSCREEN:
+			#touch input
+			if event.type == pygame.FINGERDOWN:
 
-			x = event.x * WIDTH 
-			y = event.y * HEIGHT
-			if ingame:
-				handleFDGame(x,y, event.finger_id)
-			else:
-				handleFDMenu(x,y, event.finger_id)
-			continue
-				
-		if event.type == pygame.FINGERMOTION:
-			x = event.x * WIDTH
-			y = event.y * HEIGHT
-			dx = event.dx*WIDTH
-			dy = event.dy*HEIGHT
-			
-			if ingame:
-				handleFMGame(x,y,dx,dy, event.finger_id)
-			continue
-					
-		if event.type == pygame.FINGERUP:
-			handleFU(event.finger_id)
-			continue
-		
-		if event.type == pygame.MOUSEBUTTONDOWN:
-			if event.button == 1: #left click
-				mx, my = event.pos
+				x = event.x * WIDTH 
+				y = event.y * HEIGHT
 				if ingame:
-					handleFDGame(mx,my, "mouse")
+					handleFDGame(x,y, event.finger_id)
 				else:
-					handleFDMenu(mx,my, "mouse")
-				mouseActive = True
-			elif event.button in (4,5): #scroll
-				if FIELDRECT.collidepoint(event.pos) and ingame:
-					dy = WIDTH // 20 if event.button == 4 else 1 - WIDTH // 20
-					updateGrid(0,0,dy,event.pos)
+					handleFDMenu(x,y, event.finger_id)
+				continue
 					
-		if event.type == pygame.MOUSEMOTION:
-			mx, my = event.pos
-			if mouseActive:
+			if event.type == pygame.FINGERMOTION:
+				x = event.x * WIDTH
+				y = event.y * HEIGHT
+				dx = event.dx*WIDTH
+				dy = event.dy*HEIGHT
+				
 				if ingame:
-					handleFMGame(mx,my,event.rel[0], event.rel[1], "mouse")
-					
-		if event.type == pygame.MOUSEBUTTONUP:
-			if event.button == 1: #left click
-				handleFU("mouse")
-				mouseActive = False
+					handleFMGame(x,y,dx,dy, event.finger_id)
+				continue
+						
+			if event.type == pygame.FINGERUP:
+				handleFU(event.finger_id)
+				continue
+		else:
+			#mouse input
+			if event.type == pygame.MOUSEBUTTONDOWN:
+				if event.button == 1: #left click
+					mx, my = event.pos
+					if ingame:
+						handleFDGame(mx,my, "mouse")
+					else:
+						handleFDMenu(mx,my, "mouse")
+					mouseActive = True
+				elif event.button in (4,5): #scroll
+					if FIELDRECT.collidepoint(event.pos) and ingame:
+						dy = WIDTH // 20 if event.button == 4 else 1 - WIDTH // 20
+						updateGrid(0,0,dy,event.pos)
+						
+			if event.type == pygame.MOUSEMOTION:
+				mx, my = event.pos
+				if mouseActive:
+					if ingame:
+						handleFMGame(mx,my,event.rel[0], event.rel[1], "mouse")
+						
+			if event.type == pygame.MOUSEBUTTONUP:
+				if event.button == 1: #left click
+					handleFU("mouse")
+					mouseActive = False
 		
 	if ingame:
 
