@@ -3,11 +3,12 @@ import math
 from collections import defaultdict
 from menu import getMenu
 from util import drawButton
+import platform
 
 pygame.init()
 pygame.display.set_caption('Conway\'s Game of Life')
 
-#Calculate size for pc, this is ignored on mobile devices
+#Calculate size for pc, this is ignored on mobile
 screen_height = pygame.display.Info().current_h
 scale_factor = 0.9
 window_height = int(screen_height * scale_factor)
@@ -26,7 +27,7 @@ BLUE = pygame.Color("dodgerblue")
 ORANGE = pygame.Color("orange1")
 PURPLE =pygame.Color("purple")
 CYAN = pygame.Color("cyan1")
-FONT = pygame.font.SysFont("Arial", int(HEIGHT * 0.04), True)
+FONT = pygame.font.SysFont("Arial", int(HEIGHT * 0.03), True)
 UPDATEEVENT = pygame.USEREVENT + 1
 UPDATESP1 = 1000 #ms
 UPDATESP2 = 500 #ms
@@ -35,13 +36,13 @@ UPDATESP4 = 100 #ms
 UPDATESP6 = 50 #ms
 UPDATESP8 = 25 #ms
 
-
-
 #sizes
-BORDERSIZE = int(HEIGHT * 0.005)
-SPACING = int(HEIGHT * 0.01)
+BORDERSIZE = int(HEIGHT * 0.004)
+SPACING = int(HEIGHT * 0.008)
 CTRLBTNHEIGHT = int(HEIGHT * 0.07)
 CTRLBTNWIDTH = (WIDTH - (BORDERSIZE * 2) - (SPACING * 2)) // 3
+MINCELLSIZE = WIDTH // 300 if WIDTH // 300 < HEIGHT // 240 else HEIGHT // 240
+MAXCELLSIZE = WIDTH // 3 if WIDTH // 3 < HEIGHT // 2 else HEIGHT // 2
 
 #rects
 TITLERECT = pygame.Rect(0, 0, WIDTH, int(HEIGHT * 0.05))
@@ -112,7 +113,7 @@ def drawField():
 	
 	#draw cells
 	for (x, y) in currentGrid:
-		if x in range(firstX-1, columns+firstX) and y in range(firstY-1, rows+firstY):
+		if firstX - 1 <= x < firstX + columns + 1 and firstY - 1 <= y < firstY + rows + 1:
 			posX=((x-firstX)*cellSize)+offsX
 			posY=((y-firstY)*cellSize)+offsY 
 			pygame.draw.rect(field, primColor, (posX,posY, cellSize, cellSize))
@@ -143,14 +144,19 @@ def updateCells():
 
 #update grid size and offset
 def updateGrid(dX, dY, dDist, zoomcenter=None):
-	global firstX, firstY, offsX, offsY, cellSize
+	global firstX, firstY, offsX, offsY, cellSize, rows, columns, use_touch
 	
 	#add offset to total
 	offsX += dX
 	offsY += dY
 
 	zoomFactor = 1 + (dDist / 300)
-	newCellSize = max(10, int(cellSize * zoomFactor))
+	proposedSize = int(cellSize * zoomFactor)
+	if not use_touch and dDist != 0 and cellSize == proposedSize:
+		proposedSize += 1 if dDist > 0 else -1
+	newCellSize = max(MINCELLSIZE, min(MAXCELLSIZE, proposedSize))
+
+	
 	
 	if cellSize != newCellSize and zoomcenter:
 		cx, cy = zoomcenter
@@ -162,6 +168,7 @@ def updateGrid(dX, dY, dDist, zoomcenter=None):
 		#center offset
 		offsX = cx - (gx - firstX) * newCellSize
 		offsY = cy - (gy - firstY) * newCellSize
+
 		
 	cellSize = newCellSize
 	
@@ -174,6 +181,11 @@ def updateGrid(dX, dY, dDist, zoomcenter=None):
 	# remove whole cells from the offset
 	offsX -= shiftX * cellSize
 	offsY -= shiftY * cellSize
+
+	rows = FIELDRECT.height // cellSize
+	columns = FIELDRECT.width // cellSize
+
+	print(f"Cellsize: {cellSize}, zoomFactor: {zoomFactor}, dDist: {dDist} firstX: {firstX}, firstY: {firstY}, offsX: {offsX}, offsY: {offsY}, rows: {rows}, columns: {columns}")
 	
 #cycle through colors
 def cycleColor():
@@ -346,6 +358,8 @@ lastLoc = (0,0)
 locPos = (MBUTTONRECT.left-lastLRender.get_width() - 10,tTextTop)
 colors = [WHITE,GREEN,RED,YELLOW,BLUE,ORANGE,PURPLE,CYAN]
 colorNames = ["White","Green", "Red", "Yellow", "Blue", "Orange", "Purple","Cyan"]
+use_touch = True if "android" in platform.platform().lower() or "ios" in platform.platform().lower() else False
+    
 
 #translate rect positions for menu placement
 for rect in menuBtnRects:
@@ -359,33 +373,57 @@ while running:
 		#Process events
 		if event.type == pygame.QUIT:
 			running = False
-			
-		if event.type == pygame.FINGERDOWN or event.type == pygame.MOUSEBUTTONDOWN:
 
-			x = event.x * WIDTH if event.type == pygame.FINGERDOWN else event.pos[0]
-			y = event.y * HEIGHT if event.type == pygame.FINGERDOWN else event.pos[1]
-			finger = event.finger_id if event.type == pygame.FINGERDOWN else -1
-			if ingame:
-				handleFDGame(x,y, finger)
-			else:
-				handleFDMenu(x,y, finger)
-				
-		if event.type == pygame.FINGERMOTION:
-			x = event.x * WIDTH
-			y = event.y * HEIGHT
-			dx = event.dx*WIDTH
-			dy = event.dy*HEIGHT
-			
-			if ingame:
-				handleFMGame(x,y,dx,dy, event.finger_id)
-					
-		if event.type == pygame.FINGERUP:
-			handleFU(event.finger_id)
-		if event.type == pygame.MOUSEBUTTONUP:
-			handleFU(-1)
-		
 		if event.type == UPDATEEVENT:
 			update = True
+			
+		if use_touch:
+			if event.type == pygame.FINGERDOWN:
+
+				x = event.x * WIDTH 
+				y = event.y * HEIGHT
+				if ingame:
+					handleFDGame(x,y, event.finger_id)
+				else:
+					handleFDMenu(x,y, event.finger_id)
+					
+			if event.type == pygame.FINGERMOTION:
+				x = event.x * WIDTH
+				y = event.y * HEIGHT
+				dx = event.dx*WIDTH
+				dy = event.dy*HEIGHT
+				
+				if ingame:
+					handleFMGame(x,y,dx,dy, event.finger_id)
+						
+			if event.type == pygame.FINGERUP:
+				handleFU(event.finger_id)
+		
+		else:
+			if event.type == pygame.MOUSEBUTTONDOWN:
+				if event.button == 1: #left click
+					mx, my = event.pos
+					if ingame:
+						handleFDGame(mx,my, "mouse")
+					else:
+						handleFDMenu(mx,my, "mouse")
+					mouseActive = True
+				elif event.button in (4,5): #scroll
+					if FIELDRECT.collidepoint(event.pos):
+						dy = WIDTH // 20 if event.button == 4 else 1 - WIDTH // 20
+						updateGrid(0,0,dy,event.pos)
+						
+			if event.type == pygame.MOUSEMOTION:
+				mx, my = event.pos
+				if mouseActive:
+					if ingame:
+						handleFMGame(mx,my,event.rel[0], event.rel[1], "mouse")
+						
+			if event.type == pygame.MOUSEBUTTONUP:
+				if event.button == 1: #left click
+					handleFU("mouse")
+					mouseActive = False
+		
 	
 	#draw stuff
 	screen.fill(secColor)
@@ -398,8 +436,8 @@ while running:
 			for finger, pos in fingers.items():
 				if FIELDRECT.collidepoint(pos):
 					fx, fy = pos[0], pos[1]
-					cx = int((fx - offsX) // cellSize + firstX)
-					cy = int((fy - offsY - 70) // cellSize + firstY)
+					cx = int((fx - FIELDRECT.left - offsX) // cellSize + firstX)
+					cy = int((fy - FIELDRECT.top - offsY) // cellSize + firstY)
 					currentGrid.add((cx,cy))
 		
 		#update cells
