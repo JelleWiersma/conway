@@ -18,15 +18,17 @@ screen = pygame.display.set_mode((window_width, window_height))
 #constants
 WIDTH, HEIGHT = screen.get_width(), screen.get_height()
 TOUCHSCREEN = not (WIDTH == window_width and HEIGHT == window_height) #if the window is not the set size, it is probably on mobile
-WHITE = (255,255,255)
-BLACK = (0,0,0)
-GREEN = pygame.Color("green2")
-RED = pygame.Color("red1")
-YELLOW = pygame.Color("yellow1")
-BLUE = pygame.Color("dodgerblue")
-ORANGE = pygame.Color("orange1")
-PURPLE =pygame.Color("purple")
-CYAN = pygame.Color("cyan1")
+COLORS = {
+	"White": (255,255,255),
+	"Red": pygame.Color("red1"),
+	"Yellow": pygame.Color("yellow1"),
+	"Blue": pygame.Color("dodgerblue"),
+	"Green": pygame.Color("green2"),
+	"Orange": pygame.Color("orange1"),
+	"Purple": pygame.Color("purple"),
+	"Cyan": pygame.Color("cyan1")
+}
+SECCOLOR = (0,0,0)
 FONT = pygame.font.SysFont("Arial", int(HEIGHT * 0.03), True)
 UPDATEEVENT = pygame.USEREVENT + 1
 UPDATESP1 = 1000 #ms
@@ -72,45 +74,41 @@ TITLEPOS = (2*SPACING, TTEXTTOP)
 def drawPauseButton():
 	global paused
 	if paused:
-		drawButton(screen, PBUTTONRECT, PLAYTEXT, FONT, 0, True, primColor)
+		drawButton(screen, PBUTTONRECT, PLAYTEXT, FONT, 0, primColor)
 	else:
-		drawButton(screen, PBUTTONRECT, PAUSETEXT, FONT, BORDERSIZE, True, primColor)
+		drawButton(screen, PBUTTONRECT, PAUSETEXT, FONT, BORDERSIZE, primColor)
 		
 def drawSpeedButton():
 	global speedText
-	drawButton(screen, SBUTTONRECT, speedText, FONT, BORDERSIZE, True, primColor)
+	drawButton(screen, SBUTTONRECT, speedText, FONT, BORDERSIZE, primColor)
 		
 def drawDragButton():
 	global draw
 	if draw:
-		drawButton(screen, DBUTTONRECT, DRAWTEXT, FONT, 0, True, primColor)
+		drawButton(screen, DBUTTONRECT, DRAWTEXT, FONT, 0, primColor)
 	else:
-		drawButton(screen, DBUTTONRECT, DRAGTEXT, FONT, BORDERSIZE, True, primColor)
+		drawButton(screen, DBUTTONRECT, DRAGTEXT, FONT, BORDERSIZE, primColor)
 
 #title
-def drawTitle(force=False):
-	global lastTRender, lastLoc, lastLRender, locPos, update
-
-	if update or force:
-		lastTRender = renderText(f"Turns: {turns}", FONT, primColor)
+def drawTitle():
+	global lastLoc, locPos, update
+	
+	tRender = renderText(f"Turns: {turns}", FONT, primColor)
+	lRender = renderText(f"{firstX},{firstY}", FONT, primColor)
+	locPos = (MBUTTONRECT.left-2*SPACING-lRender.get_width(), TTEXTTOP)
 		
-	if lastLoc != (firstX, firstY) or force:
-		lastLoc = (firstX, firstY)
-		lastLRender = renderText(f"{firstX},{firstY}", FONT, primColor)
-		locPos = (MBUTTONRECT.left-2*SPACING-lastLRender.get_width(), TTEXTTOP)
-		
-	screen.blit(lastTRender, TITLEPOS)
-	screen.blit(lastLRender, locPos)
+	screen.blit(tRender, TITLEPOS)
+	screen.blit(lRender, locPos)
 	
 	if ingame:
-		drawButton(screen, MBUTTONRECT, MENUTEXT, FONT, BORDERSIZE, True, primColor)
+		drawButton(screen, MBUTTONRECT, MENUTEXT, FONT, BORDERSIZE, primColor)
 	else:
-		drawButton(screen, MBUTTONRECT, CLOSETEXT, FONT, 0, True, primColor)
+		drawButton(screen, MBUTTONRECT, CLOSETEXT, FONT, 0, primColor)
 	
 
 #field
 def drawField():
-	field.fill(secColor)
+	field.fill(SECCOLOR)
 	pygame.draw.rect(field, primColor, field.get_rect(), BORDERSIZE)
 	
 	#draw cells
@@ -189,13 +187,10 @@ def updateGrid(dX, dY, dDist, zoomcenter=None):
 	
 #cycle through colors
 def cycleColor():
-	global colors, color, colorNames, primColor, menu
+	global color, primColor
 	color = color + 1 if color < 7 else 0
-	settings["changed"] = True
-	settings["color"] = colorNames[color]
-	primColor = colors[color]
-	menu = getMenu(WIDTH-10, HEIGHT-100, settings, None, primColor)[0]
-	drawTitle(True)
+	settings["color"] = list(COLORS)[color]
+	primColor = COLORS[settings["color"]]
 
 def cycleSpeed():
 	global speed, speedText
@@ -261,19 +256,19 @@ def handleFDMenu(x,y, finger_id):
 		if MBUTTONRECT.collidepoint((x,y)):
 			mtouch = finger_id
 			ingame = True
+			settings["cleared"] = False
+			settings["resetPos"] = False
+			settings["load"] = False
 		#clear
-		if menuBtnRects[0].collidepoint((x,y)):
-			settings["changed"] = True
+		elif menuBtnRects[0].collidepoint((x,y)):
 			settings["cleared"] = True
 			reset(True, False, False)
 		#reset pos
 		elif menuBtnRects[1].collidepoint((x,y)):
-			settings["changed"] = True
 			settings["pos"] = True
 			reset(False, True, False)
 		#color
 		elif menuBtnRects[2].collidepoint((x,y)):
-			settings["changed"] = True
 			cycleColor()
 		#animations
 		elif menuBtnRects[3].collidepoint((x,y)):
@@ -283,11 +278,9 @@ def handleFDMenu(x,y, finger_id):
 			pass
 		#still
 		elif menuBtnRects[5].collidepoint((x,y)):
-			settings["changed"] = True
 			settings["still"] = not settings["still"]
 		#load
 		elif menuBtnRects[6].collidepoint((x,y)):
-			settings["changed"] = True
 			settings["load"] = True
 			loadFirst()
 
@@ -338,8 +331,7 @@ cellSize = max(10, FIELDRECT.width // 80, FIELDRECT.height // 60)
 speed = UPDATESP1
 fingers = {}
 oldFingers = {}
-primColor = WHITE
-secColor = BLACK
+primColor = COLORS["White"]
 field = pygame.Surface((FIELDRECT.width, FIELDRECT.height))
 field.set_clip(field.get_rect())
 clock = pygame.time.Clock()
@@ -348,18 +340,9 @@ currentGrid = set()
 firstGrid = set()
 lastGrid = set()
 pygame.time.set_timer(UPDATEEVENT, UPDATESP1)
-settings = {"changed": True, "speed": 1, "cleared": False, "pos": False, "color": "White", "anims": False, "mode": 1, "still": False, "load": False}
+settings = {"cleared": False, "resetPos": False, "speed": 1, "pos": False, "color": "White", "anims": False, "mode": 1, "still": False, "load": False}
 speedText = SP1TEXT
-menu, menuBtnRects = getMenu(WIDTH-10, HEIGHT-100,settings) #clear, pos, color, animations, mode, still, load
-lastLoc = (0,0)
-locPos = (0,0)
-colors = [WHITE,GREEN,RED,YELLOW,BLUE,ORANGE,PURPLE,CYAN]
-colorNames = ["White","Green", "Red", "Yellow", "Blue", "Orange", "Purple","Cyan"]
-drawTitle(True)
-
-#translate rect positions for menu placement
-for rect in menuBtnRects:
-	rect.move_ip(5,100)
+menu, menuBtnRects = getMenu(WIDTH, HEIGHT, TITLERECT.bottom, settings) #clear, pos, color, animations, mode, still, load
 	
 #game loop
 while running:
@@ -448,7 +431,7 @@ while running:
 			updateCells()
 	
 	#draw stuff
-	screen.fill(secColor)
+	screen.fill(SECCOLOR)
 	drawTitle()
 
 	if ingame:
@@ -458,9 +441,8 @@ while running:
 		drawField()
 
 	else:
-		menu = getMenu(WIDTH-10, HEIGHT-100, settings, menu, primColor)[0]
-		screen.blit(menu, (5,100))
-		settings["changed"] = False
+		menu = getMenu(WIDTH, HEIGHT, TITLERECT.bottom, settings, primColor)[0]
+		screen.blit(menu, (0,TITLERECT.bottom))
 		
 	pygame.display.flip()
 	clock.tick(144)

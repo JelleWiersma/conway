@@ -23,15 +23,26 @@ MORETEXT = "Why is this interesting?"
 MOREBODY = "Apart from drawing something and watching the resulting chaos or patterns emerge, you can draw specific configurations that behave consistently. This makes it possible to make complex systems or beautiful drawings. Make sure you try out some googled figures!"
 FOOTERTEXT = "This app was made by me, Jelle. It was made on my phone, using pygame in the Pydroid 3 IDE. I decided to make this during the quiet and/or connectionless moments of 4 months travelling."
 
+menuCache = {}
 #creates a surface with menu
-def getMenu(w, h, settings, menu=None, primColor = (255,255,255), secColor = (0,0,0)):
-	screen = menu if menu else pygame.Surface((w, h))
+def getMenu(w, h, startHeight, settings, primColor=(255,255,255)):
+	global menuCache
+	cacheKey = (w,h,startHeight, str(settings.items()), str(primColor))
+	if cacheKey in menuCache:
+		return menuCache[cacheKey]
+	
+	menu = drawMenu(pygame.Surface((w,h)), startHeight, settings, primColor)
+	menuCache[cacheKey] = menu
+	return menu
+
+def drawMenu(screen, startHeight, settings, primColor=(255,255,255)):
 	screenRect = screen.get_rect()
-	
-	screen, buttonRects = drawButtons(screen, w, h, settings, menu, primColor)
-	
-	if menu:
-		return screen, buttonRects
+	totalHeight = screenRect.height
+	totalWidth = screenRect.width
+	h = totalHeight
+	w = totalWidth
+	screenRect.height -= startHeight
+	borders = int(totalHeight * 0.004)
 	
 	pygame.draw.rect(screen, primColor, screenRect, 5) #outer
 	pygame.draw.line(screen, primColor,(0, 400), (w, 400), 5) #below intro
@@ -50,53 +61,55 @@ def getMenu(w, h, settings, menu=None, primColor = (255,255,255), secColor = (0,
 	drawText(screen, MOREBODY, primColor, (w/2+40, 820, w/2-80, h-800), SFONT)
 	drawText(screen, FOOTERTEXT, primColor, (40, 1650, w/2 - 80, h-1650), SFONT)
 	
+	screen, buttonRects = drawButtons(screen, w, h, startHeight, borders, settings, primColor)
+
 	return screen, buttonRects
 	
-	
-def drawButtons(screen, w, h, settings, initial=False, primColor=(255,255,255)):
-	buttonRects = []
+def drawButtons(screen, w, h, startHeight, borders, settings, primColor=(255,255,255)):
+	buttons = [] #text, rect, active
 	btnWidth = w/2 - 160
-	redraw = True if initial or settings["changed"] else False
 
 	#clear
-	clearText = CLEAREDTEXT if settings["cleared"] else CLEARTEXT
 	clearRect = pygame.Rect(w - btnWidth - 40, 440, btnWidth, 100)
-	buttonRects.append(drawButton(screen, clearRect, clearText, SFONT, settings["cleared"], True, primColor))
+	buttons.append((CLEAREDTEXT if settings["cleared"] else CLEARTEXT, clearRect, settings["cleared"]))
 	
 	#reset pos
 	posRect = pygame.Rect(w/2+40, 580, btnWidth, 100)
-	buttonRects.append(drawButton(screen, posRect, POSTEXT, SFONT, settings["pos"], True, primColor))
+	buttons.append((POSTEXT, posRect, settings["pos"]))
 
 	#color
-	colorText = settings["color"]
 	colorRect = pygame.Rect(40, 910, btnWidth, 100)
-	buttonRects.append(drawButton(screen,colorRect, colorText, SFONT, False, redraw, primColor))
+	buttons.append((settings["color"], colorRect, False))
 	
 	#animations
 	animText = "Animations off" if not settings["anims"] else "Animations on"
 	animRect = pygame.Rect(w/2 - btnWidth - 40, 1050, btnWidth, 100)
-	buttonRects.append(drawButton(screen,animRect, animText, SFONT, settings["anims"], redraw, primColor))
+	buttons.append((animText, animRect, settings["anims"]))
 	
 	#draw mode
 	modeText = "Pixels" #settings["mode"]
 	modeRect = pygame.Rect(40,1190,btnWidth, 100)
-	buttonRects.append(drawButton(screen, modeRect, modeText, SFONT, False, redraw, primColor))
+	buttons.append((modeText, modeRect, False))
 	
 	#pause when still
 	pauseRect = pygame.Rect(w/2 - btnWidth - 40, 1330, btnWidth, 100)
-	buttonRects.append(drawButton(screen, pauseRect, PAUSETEXT, SFONT, settings["still"], redraw, primColor))
+	buttons.append((PAUSETEXT, pauseRect, settings["still"]))
 	
 	#load first turn	
 	loadRect = pygame.Rect(40,1470,btnWidth, 100)
-	buttonRects.append(drawButton(screen, loadRect, LOADTEXT, SFONT, settings["load"], True, primColor))
-	
+	buttons.append((LOADTEXT, loadRect, settings["load"]))	
 
-	#links left
 #	gitRect = pygame.Rect(40, 910, btnWidth, 100)
 #	buttonRects.append(drawButton(gitRect, GITHUBTEXT, SFONT))#github
 #	pyRect = pygame.Rect(w/2-(btnWidth+40), 1050, btnWidth, 100)
-#	buttonRects.append(drawButton(pyRect, PYDROIDTEXT, SFONT))#pydroid
-	
-	#full reset
+#	buttonRects.append(drawButton(pyRect, PYDROIDTEXT, SFONT))#pydroid	
+#	full reset
+
+	buttonRects = []
+	for text, rect, active in buttons:
+		border = borders if not active else 0
+		rect = drawButton(screen, rect, text, SFONT, border, primColor)
+		rect.top += startHeight
+		buttonRects.append(rect)
 
 	return screen, buttonRects
