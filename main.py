@@ -1,5 +1,6 @@
 import pygame
 import math
+import webbrowser
 from collections import defaultdict
 from menu import getMenu
 from util import drawButton, renderText
@@ -48,7 +49,7 @@ MAXCELLSIZE = WIDTH // 3 if WIDTH // 3 < HEIGHT // 2 else HEIGHT // 2
 
 #rects
 TITLERECT = pygame.Rect(0, 0, WIDTH, int(HEIGHT * 0.05))
-FIELDRECT = pygame.Rect(BORDERSIZE, TITLERECT.bottom, WIDTH - (BORDERSIZE * 2), HEIGHT-TITLERECT.height - CTRLBTNHEIGHT - (2*SPACING))
+FIELDRECT = pygame.Rect(BORDERSIZE, TITLERECT.bottom, WIDTH - (BORDERSIZE * 2), HEIGHT-TITLERECT.height - CTRLBTNHEIGHT - SPACING - BORDERSIZE)
 MBUTTONRECT = pygame.Rect(TITLERECT.right - BORDERSIZE - int(TITLERECT.width * 0.25), TITLERECT.top + BORDERSIZE, int(TITLERECT.width * 0.25), TITLERECT.height)
 PBUTTONRECT = pygame.Rect(FIELDRECT.left, FIELDRECT.bottom + SPACING, CTRLBTNWIDTH, CTRLBTNHEIGHT)
 SBUTTONRECT = pygame.Rect(PBUTTONRECT.right+SPACING, FIELDRECT.bottom + SPACING, CTRLBTNWIDTH, CTRLBTNHEIGHT)
@@ -91,8 +92,6 @@ def drawDragButton():
 
 #title
 def drawTitle():
-	global lastLoc, locPos, update
-	
 	tRender = renderText(f"Turns: {turns}", FONT, primColor)
 	lRender = renderText(f"{firstX},{firstY}", FONT, primColor)
 	locPos = (MBUTTONRECT.left-2*SPACING-lRender.get_width(), TTEXTTOP)
@@ -283,6 +282,12 @@ def handleFDMenu(x,y, finger_id):
 		elif menuBtnRects[6].collidepoint((x,y)):
 			settings["load"] = True
 			loadFirst()
+		#github
+		elif menuBtnRects[7].collidepoint((x,y)):
+			webbrowser.open("https://github.com/JelleWiersma/conway", 2, True)
+		#pydroid
+		elif menuBtnRects[8].collidepoint((x,y)):
+			webbrowser.open("https://play.google.com/store/apps/details?id=ru.iiec.pydroid3", 2, True)
 
 def handleFMGame(x,y,dx,dy,finger_id):
 #only draw pixel if finger didnt start by touching a button
