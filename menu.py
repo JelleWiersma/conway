@@ -17,31 +17,42 @@ MORETEXT = "Why is this interesting?\nApart from drawing something and watching 
 FOOTERTEXT = "This app was made by me, Jelle. It was made on my phone, using pygame in the Pydroid 3 IDE. I decided to make this during the quiet and/or connectionless moments of 4 months travelling."
 
 menuCache = {}
-#creates a surface with menu
+defaultSettings = {}
+buttonsCache = {}
+
+def loadMenus(w, h, startHeight, settings, colors):
+	global menuCache, defaultSettings
+	defaultSettings = settings.copy()
+	for primColor in colors:
+		getMenu(w, h, startHeight, settings, primColor)
+
+
 def getMenu(w, h, startHeight, settings, primColor=(255,255,255)):
 	global menuCache
-	cacheKey = (w,h,startHeight, str(settings.items()), str(primColor))
+	cacheKey = (settings.items(), str(primColor))
 	if cacheKey in menuCache:
 		return menuCache[cacheKey]
+	#load color and redraw buttons if needed
 	
 	menu = drawMenu(w, h, startHeight, settings, primColor)
 	menuCache[cacheKey] = menu
 	return menu
 
+#creates a surface with menu
 def drawMenu(totalWidth, totalHeight, startHeight, settings, primColor=(255,255,255)):
 	screen = pygame.Surface((totalWidth, totalHeight - startHeight))
 	
 	bigFont = pygame.font.SysFont("arial", int(totalHeight * 0.03), True)
 	smallFont = pygame.font.SysFont("arial", int(totalHeight * 0.02))
-	borders = int(totalHeight * 0.004)
-	spacing = int(totalHeight * 0.008)
+	borders = int(totalHeight * 0.002)
+	spacing = int(totalHeight * 0.006)
 
 	screenRect = screen.get_rect().inflate(0-borders*2, 0)
 	pygame.draw.rect(screen, primColor, screenRect, borders) #outer
 	screenRect = screenRect.inflate(0-borders*2, 0-borders*2) #inner
 	left, top, right, bottom, centerX, w = screenRect.left, screenRect.top, screenRect.right, screenRect.bottom, screenRect.centerx, screenRect.width
 	halfW = (w - borders)//2
-	btnWidth = (halfW - 8*spacing)//3*2
+	btnWidth = (halfW - 8*spacing)//1.25
 	btnHeight = smallFont.get_height()+spacing*2
 	
 	#draw stuff
@@ -111,3 +122,9 @@ def drawMenu(totalWidth, totalHeight, startHeight, settings, primColor=(255,255,
 	pygame.draw.line(screen, primColor, (centerX, moreRect.bottom + 2*spacing), (right, moreRect.bottom + 2*spacing), borders) #below more
 
 	return screen, buttonRects
+
+def updateButton(menu, rect, text, font, active, primColor, borders):
+	border = borders if not active else 0
+	pygame.draw.rect(menu, (0,0,0), rect) #clear
+	drawButton(menu, rect, text, font, border, primColor)
+	return menu

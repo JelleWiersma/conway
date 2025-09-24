@@ -1,7 +1,12 @@
 import pygame
 pygame.init()
 
+drawTextCache = {}
 def drawText(text, color, width, font, aa=True, bkg=None, lineSpacing=0):
+    key = (text, str(color), width, font, aa, str(bkg), lineSpacing)
+    if key in drawTextCache:
+        return drawTextCache[key]
+    
     # First, split text into lines that fit the width
     lines = []
     while text:
