@@ -2,7 +2,7 @@ import pygame
 import math
 import webbrowser
 from collections import defaultdict
-from menu import getMenu
+from menu import getMenu, loadMenus
 from util import drawButton, renderText
 
 pygame.init()
@@ -347,7 +347,7 @@ lastGrid = set()
 pygame.time.set_timer(UPDATEEVENT, UPDATESP1)
 settings = {"cleared": False, "resetPos": False, "speed": 1, "pos": False, "color": "White", "anims": False, "mode": 1, "still": False, "load": False}
 speedText = SP1TEXT
-menu, menuBtnRects = getMenu(WIDTH, HEIGHT, TITLERECT.bottom, settings) #clear, pos, color, animations, mode, still, load
+menuBtnRects = loadMenus(WIDTH, HEIGHT, TITLERECT.bottom, settings, COLORS)
 	
 #game loop
 while running:
@@ -446,7 +446,7 @@ while running:
 		drawField()
 
 	else:
-		menu = getMenu(WIDTH, HEIGHT, TITLERECT.bottom, settings, primColor)[0]
+		menu = getMenu(WIDTH, HEIGHT, TITLERECT.bottom, settings, primColor)
 		screen.blit(menu, (0,TITLERECT.bottom))
 		
 	pygame.display.flip()

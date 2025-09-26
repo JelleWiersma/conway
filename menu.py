@@ -23,13 +23,14 @@ layoutCache = {}
 def loadMenus(w, h, startHeight, settings, colors):
 	for primColor in colors:
 		getMenu(w, h, startHeight, settings, primColor)
+	return list(menuCache.values())[0]
 
 
 def getMenu(w, h, startHeight, settings, primColor=(255,255,255)):
 	global menuCache
 	cacheKey = (str(settings.items()), str(primColor))
 	if cacheKey in menuCache:
-		return menuCache[cacheKey]
+		return menuCache[cacheKey][0]
 	
 	cachedScreen, layout = getStaticMenu(w, h, startHeight, primColor)
 	screen = cachedScreen.copy()
@@ -53,7 +54,7 @@ def getMenu(w, h, startHeight, settings, primColor=(255,255,255)):
 		buttonRects.append(btnRect)
 
 	menuCache[cacheKey] = (screen, buttonRects)
-	return (screen, buttonRects)
+	return screen
 
 def getStaticMenu(w, h, startHeight, primColor=(255,255,255)):
 	global staticMenuCache
