@@ -21,8 +21,11 @@ staticMenuCache = {}
 layoutCache = {}
 
 def loadMenus(w, h, startHeight, settings, colors):
-	for primColor in colors:
-		getMenu(w, h, startHeight, settings, primColor)
+	settings = settings.copy()
+	for key, value in colors.items():
+		
+		settings["color"] = key
+		getMenu(w, h, startHeight, settings, value)
 	return list(menuCache.values())[0][1]
 
 
