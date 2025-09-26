@@ -2,7 +2,7 @@ import pygame
 pygame.init()
 
 drawTextCache = {}
-def drawText(text, color, width, font, aa=True, bkg=None, lineSpacing=0):
+def drawText(text, color, width, font, render = True, aa=True, bkg=None, lineSpacing=0):
     key = (text, str(color), width, font, aa, str(bkg), lineSpacing)
     if key in drawTextCache:
         return drawTextCache[key]
@@ -28,6 +28,8 @@ def drawText(text, color, width, font, aa=True, bkg=None, lineSpacing=0):
     total_height = len(lines) * (fontHeight + lineSpacing)
     if len(lines) == 1:
         width = font.size(lines[0])[0]
+    if not render:
+        return (width, total_height)
     surface = pygame.Surface((width, total_height), pygame.SRCALPHA)
     y = 0
     for line in lines:
