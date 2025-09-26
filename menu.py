@@ -23,7 +23,7 @@ layoutCache = {}
 def loadMenus(w, h, startHeight, settings, colors):
 	for primColor in colors:
 		getMenu(w, h, startHeight, settings, primColor)
-	return list(menuCache.values())[0]
+	return list(menuCache.values())[1]
 
 
 def getMenu(w, h, startHeight, settings, primColor=(255,255,255)):
