@@ -9,6 +9,8 @@ RULESTEXT = "The rules are as follows:\n- If a cell is alive and has 2 or 3 aliv
 CLEARTEXT = "Clear"
 CLEAREDTEXT = "Cleared"
 POSTEXT = "Reset pos"
+GRIDTEXT = "Show grid"
+REMOVETEXT = "draw to erase"
 PAUSETEXT = "Pause if still"
 LOADTEXT = "Load turn 0"
 GITHUBTEXT = "GitHub"
@@ -42,8 +44,8 @@ def getMenu(w, h, startHeight, settings, primColor=(255,255,255)):
 	buttons.append((CLEAREDTEXT if settings["cleared"] else CLEARTEXT, layout['clearRect'], settings["cleared"])) #clear
 	buttons.append((POSTEXT, layout['posRect'], settings["pos"])) #reset pos
 	buttons.append((settings["color"], layout['colorRect'], False)) #color
-	buttons.append(("Animations off" if not settings["anims"] else "Animations on", layout['animRect'], settings["anims"])) #animations
-	buttons.append(("Pixels", layout['modeRect'], False)) #mode
+	buttons.append((GRIDTEXT, layout['gridRect'], settings["grid"])) #grid
+	buttons.append((REMOVETEXT, layout['removeRect'], settings["remove"])) #remove
 	buttons.append((PAUSETEXT, layout['pauseRect'], settings["still"])) #pause when still
 	buttons.append((LOADTEXT, layout['loadRect'], settings["load"])) #load first turn
 	buttons.append((GITHUBTEXT, layout['gitRect'], False))#github
@@ -128,9 +130,9 @@ def getLayout(w, h, startHeight, primColor=(255,255,255)):
 	layout['clearRect'] = pygame.Rect(right - btnWidth - 4*layout['spacing'], layout['introRect'].bottom+3*layout['spacing']+layout['borders'], btnWidth, btnHeight)
 	layout['posRect'] = pygame.Rect(centerX + 4*layout['spacing'], layout['clearRect'].bottom+2*layout['spacing'], btnWidth, btnHeight)
 	layout['colorRect'] = pygame.Rect(left+4*layout['spacing'], layout['rulesRect'].bottom+4*layout['spacing']+layout['borders'], btnWidth, btnHeight)
-	layout['animRect'] = pygame.Rect(centerX - btnWidth - 4*layout['spacing'], layout['colorRect'].bottom+2*layout['spacing'], btnWidth, btnHeight)
-	layout['modeRect'] = pygame.Rect(left+4*layout['spacing'],layout['animRect'].bottom+2*layout['spacing'],btnWidth, btnHeight)
-	layout['pauseRect'] = pygame.Rect(centerX - btnWidth - 4*layout['spacing'], layout['modeRect'].bottom+2*layout['spacing'], btnWidth, btnHeight)
+	layout['gridRect'] = pygame.Rect(centerX - btnWidth - 4*layout['spacing'], layout['colorRect'].bottom+2*layout['spacing'], btnWidth, btnHeight)
+	layout['removeRect'] = pygame.Rect(left+4*layout['spacing'],layout['gridRect'].bottom+2*layout['spacing'],btnWidth, btnHeight)
+	layout['pauseRect'] = pygame.Rect(centerX - btnWidth - 4*layout['spacing'], layout['removeRect'].bottom+2*layout['spacing'], btnWidth, btnHeight)
 	layout['loadRect'] = pygame.Rect(left+4*layout['spacing'],layout['pauseRect'].bottom+2*layout['spacing'],btnWidth, btnHeight)
 
 	more = drawText(MORETEXT, primColor, layout['halfW']-layout['spacing']*4, layout['smallFont'],False)

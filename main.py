@@ -3,7 +3,7 @@ import math
 import webbrowser
 from collections import defaultdict
 from menu import getMenu, loadMenus
-from util import drawButton, renderText
+from util import drawButton, renderText, fade_to_black
 
 pygame.init()
 pygame.display.set_caption('Conway\'s Game of Life')
@@ -119,19 +119,34 @@ def drawField():
 	field.fill(SECCOLOR)
 	pygame.draw.rect(field, primColor, field.get_rect(), BORDERSIZE)
 
-	if currentGrid == set():
+	# Adjust cell size if grid is enabled
+	grid_enabled = settings.get("grid", False) and cellSize >= MINCELLSIZE * 4
+	grid_gap = 2 if grid_enabled else 0  # pixels between cells for grid lines
+	cell_draw_size = cellSize - grid_gap if cellSize > grid_gap else cellSize
+	grid_color = fade_to_black(primColor, 30)
+
+	if currentGrid == set() and not settings["grid"]:
 		lRender = renderText(LIFETEXT, FONT, primColor)
 		hRender = renderText(HINTTEXT, SMALLFONT, primColor)
 		field.blit(lRender, LIFETEXTPOS)
 		field.blit(hRender, HINTTEXTPOS)
-	
-	#draw cells
+
+	# Draw cells
 	for (x, y) in currentGrid:
 		if firstX - 2 <= x < firstX + columns + 2 and firstY - 2 <= y < firstY + rows + 2:
-			posX=((x-firstX)*cellSize)+offsX
-			posY=((y-firstY)*cellSize)+offsY 
-			pygame.draw.rect(field, primColor, (posX,posY, cellSize, cellSize))
-			
+			posX = ((x - firstX) * cellSize) + offsX
+			posY = ((y - firstY) * cellSize) + offsY
+			pygame.draw.rect(field, primColor, (posX, posY, cell_draw_size, cell_draw_size))
+
+	# Draw grid lines if enabled
+	if grid_enabled:
+		for col in range(columns + 2):
+			x = col * cellSize + offsX
+			pygame.draw.line(field, grid_color, (x, 0), (x, FIELDRECT.height), 1)
+		for row in range(rows + 2):
+			y = row * cellSize + offsY
+			pygame.draw.line(field, grid_color, (0, y), (FIELDRECT.width, y), 1)
+
 	screen.blit(field, FIELDRECT.topleft)
 
 #Logic
@@ -285,12 +300,12 @@ def handleFDMenu(x,y, finger_id):
 		#color
 		elif menuBtnRects[2].collidepoint((x,y)):
 			cycleColor()
-		#animations
+		#grid
 		elif menuBtnRects[3].collidepoint((x,y)):
-			pass
-		#mode
+			settings["grid"] = not settings["grid"]
+		#erase
 		elif menuBtnRects[4].collidepoint((x,y)):
-			pass
+			settings["remove"] = not settings["remove"]
 		#still
 		elif menuBtnRects[5].collidepoint((x,y)):
 			settings["still"] = not settings["still"]
@@ -364,7 +379,7 @@ currentGrid = set()
 firstGrid = set()
 lastGrid = set()
 pygame.time.set_timer(UPDATEEVENT, UPDATESP1)
-settings = {"cleared": False, "resetPos": False, "speed": 1, "pos": False, "color": "White", "anims": False, "mode": 1, "still": False, "load": False}
+settings = {"cleared": False, "resetPos": False, "speed": 1, "pos": False, "color": "White", "grid": False, "remove": False, "still": False, "load": False}
 speedText = SP1TEXT
 menuBtnRects = loadMenus(WIDTH, HEIGHT, TITLERECT.bottom, settings, COLORS)
 	
@@ -441,7 +456,10 @@ while running:
 					fx, fy = pos[0], pos[1]
 					cx = int((fx - FIELDRECT.left - offsX) // cellSize + firstX)
 					cy = int((fy - FIELDRECT.top - offsY) // cellSize + firstY)
-					currentGrid.add((cx,cy))
+					if settings["remove"]:
+						currentGrid.discard((cx,cy))
+					else:
+						currentGrid.add((cx,cy))
 		
 		#update cells
 		if (not paused) & update:

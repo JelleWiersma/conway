@@ -63,3 +63,6 @@ def renderText(text, font, color, secColor=(0,0,0)):
     else:
         renderCache[key] = font.render(text, True, color, secColor)
         return renderCache[key]
+
+def fade_to_black(color, percent):
+    return tuple(int(c * (1 - percent / 100)) for c in color)
