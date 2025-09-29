@@ -31,6 +31,7 @@ COLORS = {
 }
 SECCOLOR = (0,0,0)
 FONT = pygame.font.SysFont("Arial", int(HEIGHT * 0.03), True)
+SMALLFONT = pygame.font.SysFont("Arial", int(HEIGHT * 0.02), True)
 UPDATEEVENT = pygame.USEREVENT + 1
 UPDATESP1 = 1000 #ms
 UPDATESP2 = 500 #ms
@@ -68,8 +69,16 @@ DRAWTEXT = "Drawing"
 DRAGTEXT = "Dragging"
 MENUTEXT = "Menu"
 CLOSETEXT = "Close"
+LOADINGTEXT = "Loading..."
+LIFETEXT = "Welcome to Conway's Game of Life!"
+HINTTEXT = "Start by drawing some cells"
+
 TTEXTTOP = TITLERECT.height // 2 - FONT.get_height() // 2
 TITLEPOS = (2*SPACING, TTEXTTOP)
+LIFETEXTPOS = (FIELDRECT.width//2 - FONT.size(LIFETEXT)[0]//2, FIELDRECT.height//2.5 - FONT.get_height()//2)
+HINTTEXTPOS = (FIELDRECT.width//2 - SMALLFONT.size(HINTTEXT)[0]//2, LIFETEXTPOS[1] + FONT.get_height() + SPACING)
+
+
 
 #buttons
 def drawPauseButton():
@@ -109,6 +118,12 @@ def drawTitle():
 def drawField():
 	field.fill(SECCOLOR)
 	pygame.draw.rect(field, primColor, field.get_rect(), BORDERSIZE)
+
+	if currentGrid == set():
+		lRender = renderText(LIFETEXT, FONT, primColor)
+		hRender = renderText(HINTTEXT, SMALLFONT, primColor)
+		field.blit(lRender, LIFETEXTPOS)
+		field.blit(hRender, HINTTEXTPOS)
 	
 	#draw cells
 	for (x, y) in currentGrid:
@@ -139,6 +154,7 @@ def updateCells():
 			newAlive.add(cell)
 	
 	still = newAlive == currentGrid or newAlive == lastGrid
+	lastGrid = currentGrid
 	currentGrid = set(newAlive)
 
 #update grid size and offset
@@ -328,6 +344,10 @@ def handleFU(finger_id):
 		oldFingers.pop(finger_id, None)
 
 #setup
+primColor = COLORS["White"]
+loading = renderText(LOADINGTEXT, FONT, primColor)
+screen.blit(loading, (WIDTH//2 - loading.get_width()//2, HEIGHT//2 - loading.get_height()//2))
+pygame.display.flip()
 running = ingame = paused = draw = True
 still = mouseActive = update = False
 ptouch = stouch = dtouch = mtouch = None
@@ -336,7 +356,6 @@ cellSize = max(10, FIELDRECT.width // 80, FIELDRECT.height // 60)
 speed = UPDATESP1
 fingers = {}
 oldFingers = {}
-primColor = COLORS["White"]
 field = pygame.Surface((FIELDRECT.width, FIELDRECT.height))
 field.set_clip(field.get_rect())
 clock = pygame.time.Clock()
@@ -428,6 +447,7 @@ while running:
 		if (not paused) & update:
 			if settings["still"] and still:
 				paused = True
+				settings["still"] = False
 				continue
 			
 			if turns == 0:
